@@ -41,6 +41,7 @@ const usersKey = "twoStepTrialUsers";
 const sessionKey = "twoStepCurrentUser";
 const invitesKey = "twoStepDanceInvites";
 const messagesKey = "twoStepMessages";
+const demoMode = new URLSearchParams(window.location.search).get("demo") === "1";
 let currentUser = null;
 let deckIndex = 0;
 const passedEmails = new Set();
@@ -532,12 +533,20 @@ function openDm(email) {
 }
 
 function setPage(page) {
+  if (!demoMode && (page === "testers" || page === "safety")) page = "profile";
+
   document.querySelectorAll(".page-button").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.pageTarget === page);
   });
 
   document.querySelectorAll(".app-page").forEach((section) => {
     section.classList.toggle("is-hidden", section.dataset.page !== page);
+  });
+}
+
+function setupDemoMode() {
+  document.querySelectorAll("[data-demo-only]").forEach((element) => {
+    element.hidden = !demoMode;
   });
 }
 
@@ -764,6 +773,7 @@ document.querySelector("#removePhoto").addEventListener("click", () => {
   renderInvites();
 });
 
+setupDemoMode();
 renderMatches();
 updateSummary();
 renderTesterList();

@@ -79,11 +79,11 @@
 
       <nav class="page-nav" aria-label="App pages">
         <button class="page-button is-active" type="button" data-page-target="profile">Profile</button>
-          <button class="page-button" type="button" data-page-target="matches">Dance</button>
-          <button class="page-button" type="button" data-page-target="invites">Invites <span class="nav-badge is-hidden" id="inviteBadge">0</span></button>
-          <button class="page-button" type="button" data-page-target="testers">Test</button>
-          <button class="page-button" type="button" data-page-target="safety">Safety</button>
-        </nav>
+        <button class="page-button" type="button" data-page-target="matches">Dance</button>
+        <button class="page-button" type="button" data-page-target="invites">Invites <span class="nav-badge is-hidden" id="inviteBadge">0</span></button>
+        <button class="page-button" type="button" data-page-target="testers" data-demo-only hidden>Test</button>
+        <button class="page-button" type="button" data-page-target="safety" data-demo-only hidden>Safety</button>
+      </nav>
 
       <main class="workspace">
         <section class="profile-panel app-page" data-page="profile" aria-labelledby="profile-title">
@@ -211,7 +211,7 @@
             <img src="assets/dance-floor.svg" alt="Country dance floor with spotlights">
             <div>
               <p class="eyebrow">Invite notifications</p>
-              <h2>Test dance invites.</h2>
+              <h2>Dance invites.</h2>
               <p>When two users invite each other, both see a match here and can open a DM.</p>
             </div>
           </div>
@@ -220,7 +220,7 @@
           <section class="dm-panel is-hidden" id="dmPanel" aria-label="Direct messages"></section>
         </section>
 
-        <section class="safety-panel app-page is-hidden" data-page="testers" aria-label="Test users">
+        <section class="safety-panel app-page is-hidden" data-page="testers" aria-label="Test users" data-demo-only hidden>
           <div class="panel-heading">
             <p class="eyebrow">Multi-user test</p>
             <h1>Switch between trial users.</h1>
@@ -235,7 +235,7 @@
           <section class="tester-list" id="testerList" aria-label="Local trial users"></section>
         </section>
 
-        <aside class="safety-panel app-page is-hidden" data-page="safety" aria-label="Safety details">
+        <aside class="safety-panel app-page is-hidden" data-page="safety" aria-label="Safety details" data-demo-only hidden>
           <div class="profile-summary">
             <img id="summaryPhoto" src="assets/default-cowboy-profile.png" alt="">
             <div>
