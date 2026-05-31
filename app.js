@@ -30,6 +30,7 @@ const signinEmail = document.querySelector("#signinEmail");
 const signinPassword = document.querySelector("#signinPassword");
 const sessionBadge = document.querySelector("#sessionBadge");
 const signOutButton = document.querySelector("#signOutButton");
+const createPairButton = document.querySelector("#createPairButton");
 const seedUsersButton = document.querySelector("#seedUsersButton");
 const resetUsersButton = document.querySelector("#resetUsersButton");
 const testerList = document.querySelector("#testerList");
@@ -82,6 +83,33 @@ const demoUsers = [
     genderPreference: "nonbinary",
     age: 14,
     gender: "nonbinary",
+    photo: ""
+  }
+];
+
+const betaTestUsers = [
+  {
+    name: "Test Dancer A",
+    email: "test-a@twostep.local",
+    password: "demo123",
+    location: "A",
+    minAge: 13,
+    maxAge: 18,
+    genderPreference: "any",
+    age: 15,
+    gender: "female",
+    photo: ""
+  },
+  {
+    name: "Test Dancer B",
+    email: "test-b@twostep.local",
+    password: "demo123",
+    location: "A",
+    minAge: 13,
+    maxAge: 18,
+    genderPreference: "any",
+    age: 16,
+    gender: "male",
     photo: ""
   }
 ];
@@ -182,13 +210,17 @@ function pairKey(emailA, emailB) {
 }
 
 function upsertDemoUsers() {
+  upsertUsers(demoUsers);
+}
+
+function upsertUsers(nextUsers) {
   const users = getUsers();
-  demoUsers.forEach((demoUser) => {
-    const index = users.findIndex((user) => user.email === demoUser.email);
+  nextUsers.forEach((nextUser) => {
+    const index = users.findIndex((user) => user.email === nextUser.email);
     if (index === -1) {
-      users.push(demoUser);
+      users.push(nextUser);
     } else {
-      users[index] = { ...users[index], ...demoUser };
+      users[index] = { ...users[index], ...nextUser };
     }
   });
   saveUsers(users);
@@ -715,6 +747,12 @@ seedUsersButton.addEventListener("click", () => {
   resetDeckPosition();
   renderMatches();
   renderTesterList();
+});
+
+createPairButton.addEventListener("click", () => {
+  upsertUsers(betaTestUsers);
+  switchToUser(betaTestUsers[0].email);
+  setPage("testers");
 });
 
 resetUsersButton.addEventListener("click", () => {
