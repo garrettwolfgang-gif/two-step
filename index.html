@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Two Step</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <section class="auth-shell" id="authShell" aria-label="Sign in or sign up">
+      <div class="auth-card">
+        <a class="brand auth-brand" href="#" aria-label="Two Step home">
+          <span class="brand-mark"><img src="assets/two-step-logo.png" alt=""></span>
+          <span>
+            <strong>Two Step</strong>
+            <small>Teen dance matches</small>
+          </span>
+        </a>
+
+        <div class="panel-heading">
+          <p class="eyebrow">Teen beta</p>
+          <h1>Join the dance list.</h1>
+        </div>
+
+        <div class="auth-tabs" role="tablist" aria-label="Account options">
+          <button class="auth-tab is-active" type="button" data-auth-mode="signup">Sign up</button>
+          <button class="auth-tab" type="button" data-auth-mode="signin">Sign in</button>
+        </div>
+
+        <form class="auth-form" id="signupForm">
+          <label>
+            Display name
+            <input id="signupName" type="text" value="Garrett" maxlength="24" autocomplete="name">
+          </label>
+          <label>
+            Email
+            <input id="signupEmail" type="email" value="garrett@example.com" autocomplete="email">
+          </label>
+          <label>
+            Password
+            <input id="signupPassword" type="password" value="twostep123" autocomplete="new-password">
+          </label>
+          <button class="primary-button" type="submit">Create account</button>
+        </form>
+
+        <form class="auth-form is-hidden" id="signinForm">
+          <label>
+            Email
+            <input id="signinEmail" type="email" value="garrett@example.com" autocomplete="email">
+          </label>
+          <label>
+            Password
+            <input id="signinPassword" type="password" value="twostep123" autocomplete="current-password">
+          </label>
+          <button class="primary-button" type="submit">Sign in</button>
+        </form>
+
+        <p class="auth-message" id="authMessage" role="status"></p>
+        <p class="auth-note">This prototype stores trial users on this device. A hosted backend makes accounts work from any network.</p>
+      </div>
+    </section>
+
+    <div class="app-shell is-hidden" id="appShell">
+      <header class="topbar" aria-label="Main navigation">
+        <div class="brand-cluster">
+          <a class="brand" href="#" aria-label="Two Step home">
+            <span class="brand-mark"><img src="assets/two-step-logo.png" alt=""></span>
+            <span>
+              <strong>Two Step</strong>
+              <small>Teen dance matches</small>
+            </span>
+          </a>
+          <div class="session-tools">
+            <span class="audience-badge" id="sessionBadge">Teen beta</span>
+            <button class="ghost-button" type="button" id="signOutButton">Sign out</button>
+          </div>
+        </div>
+      </header>
+
+      <nav class="page-nav" aria-label="App pages">
+        <button class="page-button is-active" type="button" data-page-target="profile">Profile</button>
+          <button class="page-button" type="button" data-page-target="matches">Dance</button>
+          <button class="page-button" type="button" data-page-target="invites">Invites <span class="nav-badge is-hidden" id="inviteBadge">0</span></button>
+          <button class="page-button" type="button" data-page-target="testers">Test</button>
+          <button class="page-button" type="button" data-page-target="safety">Safety</button>
+        </nav>
+
+      <main class="workspace">
+        <section class="profile-panel app-page" data-page="profile" aria-labelledby="profile-title">
+          <div class="panel-heading">
+            <p class="eyebrow">Profile</p>
+            <h1 id="profile-title">Find your next dance match.</h1>
+          </div>
+
+          <div class="photo-card">
+            <label class="photo-uploader" for="profilePhoto">
+              <img id="photoPreview" src="assets/default-cowboy-profile.png" alt="Profile preview">
+              <span>Upload picture</span>
+            </label>
+            <input id="profilePhoto" type="file" accept="image/*">
+            <button class="ghost-button" type="button" id="removePhoto">Remove</button>
+          </div>
+
+          <form class="profile-form" id="profileForm">
+            <label>
+              Display name
+              <input id="displayName" name="displayName" type="text" value="Garrett" maxlength="24">
+            </label>
+
+            <label>
+              Trial location
+              <select id="trialLocation" name="trialLocation">
+                <option value="A" selected>Location A</option>
+                <option value="B">Location B</option>
+                <option value="C">Location C</option>
+              </select>
+            </label>
+
+            <label>
+              Your age
+              <select id="userAge" name="userAge">
+                <option value="13" selected>13</option>
+                <option value="14">14</option>
+                <option value="15">15</option>
+                <option value="16">16</option>
+                <option value="17">17</option>
+                <option value="18">18</option>
+              </select>
+            </label>
+
+            <label>
+              Your gender
+              <select id="userGender" name="userGender">
+                <option value="female" selected>Female</option>
+                <option value="male">Male</option>
+                <option value="nonbinary">Non-binary</option>
+              </select>
+            </label>
+
+            <div class="field-row">
+              <label>
+                Min age
+                <select id="minAge" name="minAge">
+                  <option value="13" selected>13</option>
+                  <option value="14">14</option>
+                  <option value="15">15</option>
+                  <option value="16">16</option>
+                  <option value="17">17</option>
+                  <option value="18">18</option>
+                </select>
+              </label>
+
+              <label>
+                Max age
+                <select id="maxAge" name="maxAge">
+                  <option value="13">13</option>
+                  <option value="14">14</option>
+                  <option value="15">15</option>
+                  <option value="16">16</option>
+                  <option value="17">17</option>
+                  <option value="18" selected>18</option>
+                </select>
+              </label>
+            </div>
+
+            <label>
+              Gender preference
+              <select id="genderPreference" name="genderPreference">
+                <option value="any" selected>All genders</option>
+                <option value="women">Women</option>
+                <option value="men">Men</option>
+                <option value="nonbinary">Nonbinary dancers</option>
+              </select>
+            </label>
+
+            <button class="primary-button next-button" type="button" data-page-target="matches">Start dance deck</button>
+          </form>
+        </section>
+
+        <section class="discover-panel app-page is-hidden" data-page="matches" aria-label="Dance deck">
+          <div class="hero-strip">
+            <img src="assets/match-finder-silhouettes.png" alt="Match finder western silhouettes">
+            <div>
+              <p class="eyebrow">Dance deck</p>
+              <h2>Pick who to ask for a dance.</h2>
+              <p>View one dancer at a time. Tap Invite to dance or Pass.</p>
+            </div>
+          </div>
+
+          <div class="toolbar" aria-label="Match filters">
+            <label>
+              Search
+              <input id="searchInput" type="search" placeholder="Name or location">
+            </label>
+            <label>
+              Location
+              <select id="locationFilter">
+                <option value="any">All locations</option>
+                <option value="A">Location A</option>
+                <option value="B">Location B</option>
+                <option value="C">Location C</option>
+              </select>
+            </label>
+          </div>
+
+          <section class="swipe-stage" id="matchesPanel" aria-label="Dance partner deck"></section>
+        </section>
+
+        <section class="discover-panel app-page is-hidden" data-page="invites" aria-label="Invites">
+          <div class="hero-strip compact-hero">
+            <img src="assets/dance-floor.svg" alt="Country dance floor with spotlights">
+            <div>
+              <p class="eyebrow">Invite notifications</p>
+              <h2>Test dance invites.</h2>
+              <p>When two users invite each other, both see a match here and can open a DM.</p>
+            </div>
+          </div>
+
+          <section class="invite-stack" id="invitesPanel" aria-label="Dance invite notifications"></section>
+          <section class="dm-panel is-hidden" id="dmPanel" aria-label="Direct messages"></section>
+        </section>
+
+        <section class="safety-panel app-page is-hidden" data-page="testers" aria-label="Test users">
+          <div class="panel-heading">
+            <p class="eyebrow">Multi-user test</p>
+            <h1>Switch between trial users.</h1>
+          </div>
+
+          <div class="tester-actions">
+            <button class="primary-button" type="button" id="seedUsersButton">Add demo users</button>
+            <button class="ghost-button bordered-button" type="button" id="resetUsersButton">Reset demo data</button>
+          </div>
+
+          <p class="auth-note">Use this page to test how accounts see each other. Pick a user, then open Dance to see everyone except the signed-in account.</p>
+          <section class="tester-list" id="testerList" aria-label="Local trial users"></section>
+        </section>
+
+        <aside class="safety-panel app-page is-hidden" data-page="safety" aria-label="Safety details">
+          <div class="profile-summary">
+            <img id="summaryPhoto" src="assets/default-cowboy-profile.png" alt="">
+            <div>
+              <strong id="summaryName">Garrett</strong>
+              <span id="summaryMeta">Ages 13-18 · All genders · Location A</span>
+            </div>
+          </div>
+
+          <div class="notice">
+            <strong>Teen beta</strong>
+            <p>Shows youth-friendly dance matches only. Messaging should include guardian controls before launch.</p>
+          </div>
+
+          <div class="checklist">
+            <h2>Built-in trust basics</h2>
+            <label><input type="checkbox" checked> Teen-only first run</label>
+            <label><input type="checkbox" checked> Profile photo review</label>
+            <label><input type="checkbox" checked> Invite notifications</label>
+            <label><input type="checkbox"> Verified dance studios</label>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

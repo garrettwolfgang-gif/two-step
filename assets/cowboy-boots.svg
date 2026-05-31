@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="420" viewBox="0 0 760 420" role="img" aria-label="Pair of western cowboy boots">
+  <rect width="760" height="420" fill="#fff7e8"/>
+  <path d="M0 330h760v90H0z" fill="#e7cfaa"/>
+  <path d="M0 331c108-32 196-32 304 0s196 32 304 0c57-17 104-24 152-22v111H0z" fill="#d7b17b"/>
+
+  <path d="M251 47c44-16 86-16 130 0 7 86 1 170-21 251H245c-17-82-15-166 6-251z" fill="#8f4f2b"/>
+  <path d="M272 75c28-8 57-8 86 0 3 52 1 104-9 156h-70c-11-52-13-104-7-156z" fill="#b66f38"/>
+  <path d="M245 285h122c18 18 46 28 84 30 15 1 24 13 21 29-4 19-19 28-45 28H235c-23 0-38-12-44-31-6-20 16-44 54-56z" fill="#5c2d18"/>
+  <path d="M231 331c64 11 130 11 198 0" fill="none" stroke="#e2aa52" stroke-width="9" stroke-linecap="round"/>
+  <path d="M278 105c17 18 38 18 55 0 16 18 16 52 0 70-17-18-38-18-55 0-16-18-16-52 0-70z" fill="none" stroke="#e7b65c" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M256 48c42 18 82 18 120 0" fill="none" stroke="#3f1e11" stroke-width="9" stroke-linecap="round"/>
+
+  <path d="M409 47c44-16 86-16 130 0 21 85 23 169 6 251H430c-22-81-28-165-21-251z" fill="#704020"/>
+  <path d="M432 75c29-8 58-8 86 0 6 52 4 104-7 156h-70c-10-52-12-104-9-156z" fill="#9e5d2e"/>
+  <path d="M393 285h122c38 12 60 36 54 56-6 19-21 31-44 31H333c-26 0-41-9-45-28-3-16 6-28 21-29 38-2 66-12 84-30z" fill="#4b2415"/>
+  <path d="M331 331c68 11 134 11 198 0" fill="none" stroke="#d89a46" stroke-width="9" stroke-linecap="round"/>
+  <path d="M437 105c17 18 38 18 55 0 16 18 16 52 0 70-17-18-38-18-55 0-16-18-16-52 0-70z" fill="none" stroke="#d9a14c" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M414 48c38 18 78 18 120 0" fill="none" stroke="#32180e" stroke-width="9" stroke-linecap="round"/>
+</svg>

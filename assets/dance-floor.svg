@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="620" viewBox="0 0 900 620" role="img" aria-label="Country dance floor with warm spotlights">
+  <defs>
+    <linearGradient id="wall" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#315d70"/>
+      <stop offset=".52" stop-color="#6f8565"/>
+      <stop offset="1" stop-color="#b44d2d"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#d7a33f"/>
+      <stop offset="1" stop-color="#82351f"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="620" fill="url(#wall)"/>
+  <path d="M0 390h900v230H0z" fill="url(#floor)"/>
+  <path d="M95 620 389 390h52L235 620zm310 0 85-230h52L553 620zm218 0-33-230h52l121 230z" fill="#1d1c18" opacity=".18"/>
+  <path d="M0 390h900" stroke="#fffaf0" stroke-opacity=".55" stroke-width="5"/>
+  <circle cx="182" cy="118" r="56" fill="#fff3c5" opacity=".84"/>
+  <circle cx="724" cy="126" r="46" fill="#fff3c5" opacity=".72"/>
+  <path d="M182 178 56 390h252zM724 178 608 390h232z" fill="#fff3c5" opacity=".22"/>
+  <g fill="#1d1c18">
+    <path d="M407 232c23-12 49-6 67 17l-24 18c-8-10-17-13-27-8-16 8-20 34-7 73l-31 8c-19-55-11-91 22-108z"/>
+    <path d="M489 255c19 1 35 14 48 39l-27 15c-7-14-15-21-24-21-13 0-25 16-38 49l-30-12c18-48 42-71 71-70z"/>
+    <circle cx="417" cy="204" r="24"/>
+    <circle cx="501" cy="228" r="22"/>
+    <path d="m379 343 33 6-28 104h-37zM465 338l31-12 61 102-32 20zM421 344h35l7 113h-38zM525 312l32 7-11 94h-35z"/>
+  </g>
+  <path d="M104 92h116m472 5h94M61 338h103m585 14h92" stroke="#fffaf0" stroke-width="8" stroke-linecap="round" opacity=".5"/>
+</svg>
