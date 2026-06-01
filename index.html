@@ -79,6 +79,7 @@
 
       <nav class="page-nav" aria-label="App pages">
         <button class="page-button is-active" type="button" data-page-target="profile">Profile</button>
+        <button class="page-button" type="button" data-page-target="checkin">Check In</button>
         <button class="page-button" type="button" data-page-target="matches">Dance</button>
         <button class="page-button" type="button" data-page-target="invites">Invites <span class="nav-badge is-hidden" id="inviteBadge">0</span></button>
         <button class="page-button" type="button" data-page-target="testers" data-demo-only hidden>Test</button>
@@ -173,8 +174,62 @@
               </select>
             </label>
 
-            <button class="primary-button next-button" type="button" data-page-target="matches">Start dance deck</button>
+            <button class="primary-button next-button" type="button" data-page-target="checkin">Continue to check in</button>
           </form>
+        </section>
+
+        <section class="safety-panel app-page is-hidden" data-page="checkin" aria-label="Event check in">
+          <div class="panel-heading">
+            <p class="eyebrow">Event check in</p>
+            <h1>Unlock dancing only at active events.</h1>
+          </div>
+
+          <div class="notice strong-notice" id="checkinStatus">
+            <strong>Not checked in</strong>
+            <p>Choose an active event and complete the safety checks before using the Dance deck.</p>
+          </div>
+
+          <form class="checkin-form" id="checkinForm">
+            <label>
+              Trial event
+              <select id="eventSelect"></select>
+            </label>
+
+            <label>
+              Event code
+              <input id="eventCode" type="text" autocomplete="off" placeholder="Ask event staff">
+            </label>
+
+            <div class="checklist safety-control-list">
+              <h2>Required safety checks</h2>
+              <label><input id="guardianConsent" type="checkbox"> Guardian or trusted adult knows I am at this event</label>
+              <label><input id="conductAgree" type="checkbox"> I agree to respectful dance invites and no pressure after a pass</label>
+            </div>
+
+            <div class="tester-actions">
+              <button class="primary-button" type="submit">Check in</button>
+              <button class="ghost-button bordered-button" type="button" id="checkoutButton">Check out</button>
+            </div>
+          </form>
+
+          <div class="safety-grid">
+            <article class="tester-card">
+              <h3>Invite lock</h3>
+              <p class="meta">You can only invite dancers checked into the same active event.</p>
+            </article>
+            <article class="tester-card">
+              <h3>DM lock</h3>
+              <p class="meta">DM sending is available only after a mutual match at the current event.</p>
+            </article>
+            <article class="tester-card">
+              <h3>Event code</h3>
+              <p class="meta">Trial codes: A123, B123, C123. Closed events reject check-in.</p>
+            </article>
+            <article class="tester-card">
+              <h3>End-of-night reset</h3>
+              <p class="meta">Checking out removes you from the active dance deck.</p>
+            </article>
+          </div>
         </section>
 
         <section class="discover-panel app-page is-hidden" data-page="matches" aria-label="Dance deck">

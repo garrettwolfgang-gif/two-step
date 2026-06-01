@@ -37,11 +37,19 @@ const testerList = document.querySelector("#testerList");
 const invitesPanel = document.querySelector("#invitesPanel");
 const dmPanel = document.querySelector("#dmPanel");
 const inviteBadge = document.querySelector("#inviteBadge");
+const checkinForm = document.querySelector("#checkinForm");
+const eventSelect = document.querySelector("#eventSelect");
+const eventCode = document.querySelector("#eventCode");
+const guardianConsent = document.querySelector("#guardianConsent");
+const conductAgree = document.querySelector("#conductAgree");
+const checkoutButton = document.querySelector("#checkoutButton");
+const checkinStatus = document.querySelector("#checkinStatus");
 
 const usersKey = "twoStepTrialUsers";
 const sessionKey = "twoStepCurrentUser";
 const invitesKey = "twoStepDanceInvites";
 const messagesKey = "twoStepMessages";
+const checkinsKey = "twoStepEventCheckins";
 const urlParams = new URLSearchParams(window.location.search);
 const demoMode = urlParams.get("demo") === "1";
 const demoUserEmail = demoMode ? urlParams.get("user") : "";
@@ -50,6 +58,12 @@ let deckIndex = 0;
 const passedEmails = new Set();
 let activeDmEmail = "";
 let lastSyncSignature = "";
+
+const trialEvents = [
+  { id: "location-a-friday", name: "Location A Friday Dance", location: "A", code: "A123", active: true, time: "Tonight 7:00-10:00 PM" },
+  { id: "location-b-saturday", name: "Location B Saturday Dance", location: "B", code: "B123", active: true, time: "Saturday 6:30-9:30 PM" },
+  { id: "location-c-closed", name: "Location C Practice", location: "C", code: "C123", active: false, time: "Closed for trial" }
+];
 
 const demoUsers = [
   {
@@ -172,11 +186,42 @@ function saveMessages(messages) {
   localStorage.setItem(messagesKey, JSON.stringify(messages));
 }
 
+function getCheckins() {
+  return JSON.parse(localStorage.getItem(checkinsKey) || "[]");
+}
+
+function saveCheckins(checkins) {
+  localStorage.setItem(checkinsKey, JSON.stringify(checkins));
+}
+
+function eventById(eventId) {
+  return trialEvents.find((event) => event.id === eventId);
+}
+
+function activeCheckinFor(email) {
+  const checkin = getCheckins().find((item) => item.email === email);
+  if (!checkin) return null;
+
+  const event = eventById(checkin.eventId);
+  return event && event.active ? { ...checkin, event } : null;
+}
+
+function currentCheckin() {
+  return currentUser ? activeCheckinFor(currentUser.email) : null;
+}
+
+function canInteractWith(email) {
+  const mine = currentCheckin();
+  const theirs = activeCheckinFor(email);
+  return Boolean(mine && theirs && mine.eventId === theirs.eventId);
+}
+
 function syncSignature() {
   return [
     localStorage.getItem(invitesKey) || "[]",
     localStorage.getItem(messagesKey) || "[]",
-    localStorage.getItem(usersKey) || "[]"
+    localStorage.getItem(usersKey) || "[]",
+    localStorage.getItem(checkinsKey) || "[]"
   ].join("|");
 }
 
@@ -192,6 +237,7 @@ function refreshSharedState() {
   renderMatches();
   renderTesterList();
   renderInvites();
+  renderCheckin();
 }
 
 function syncSharedState(force = false) {
@@ -204,8 +250,10 @@ function syncSharedState(force = false) {
 
 function unreadDmMessages() {
   if (!currentUser) return [];
+  const checkin = currentCheckin();
+  if (!checkin) return [];
 
-  return getMessages().filter((message) => message.toEmail === currentUser.email && !message.read);
+  return getMessages().filter((message) => message.toEmail === currentUser.email && message.eventId === checkin.eventId && !message.read);
 }
 
 function updateNotificationBadge() {
@@ -292,8 +340,12 @@ function genderPreferenceCategory(gender) {
 }
 
 function allMatches() {
+  const checkin = currentCheckin();
+  if (!checkin) return [];
+
   const signedUpUsers = getUsers()
     .filter((user) => !currentUser || user.email !== currentUser.email)
+    .filter((user) => canInteractWith(user.email))
     .map((user) => ({
       name: user.name,
       email: user.email,
@@ -304,7 +356,7 @@ function allMatches() {
       photo: user.photo || ""
     }));
 
-  return [...seedMatches, ...signedUpUsers];
+  return signedUpUsers;
 }
 
 function matchesSearch(item) {
@@ -332,6 +384,20 @@ function resetDeckPosition() {
 
 function renderMatches() {
   const panel = document.querySelector("#matchesPanel");
+  const checkin = currentCheckin();
+
+  if (!checkin) {
+    panel.innerHTML = `
+      <article class="swipe-card empty-card">
+        <h3>Check in before dancing.</h3>
+        <p class="meta">The Dance deck opens only during an active event check-in.</p>
+        <button class="primary-button" type="button" id="goCheckinButton">Go to check in</button>
+      </article>
+    `;
+    document.querySelector("#goCheckinButton").addEventListener("click", () => setPage("checkin"));
+    return;
+  }
+
   const visible = currentDeck();
   const match = visible[deckIndex];
 
@@ -339,7 +405,7 @@ function renderMatches() {
     panel.innerHTML = `
       <article class="swipe-card empty-card">
         <h3>No more dancers in this deck.</h3>
-        <p class="meta">Try changing filters or reset passed dancers.</p>
+        <p class="meta">Only dancers checked into ${checkin.event.name} appear here.</p>
         <button class="primary-button" type="button" id="resetDeckButton">Reset passed dancers</button>
       </article>
     `;
@@ -411,9 +477,16 @@ function emptyState(message) {
 
 function sendInvite(toEmail, toName) {
   if (!currentUser) return;
+  const checkin = currentCheckin();
+
+  if (!checkin || !canInteractWith(toEmail)) {
+    setPage("checkin");
+    renderCheckin("Both dancers must be checked into the same active event before invites.");
+    return;
+  }
 
   const invites = getInvites();
-  const alreadySent = invites.some((invite) => invite.fromEmail === currentUser.email && invite.toEmail === toEmail);
+  const alreadySent = invites.some((invite) => invite.fromEmail === currentUser.email && invite.toEmail === toEmail && invite.eventId === checkin.eventId);
 
   if (!alreadySent) {
     invites.push({
@@ -422,6 +495,8 @@ function sendInvite(toEmail, toName) {
       fromName: currentUser.name,
       toEmail,
       toName,
+      eventId: checkin.eventId,
+      eventName: checkin.event.name,
       createdAt: new Date().toLocaleString()
     });
     saveInvites(invites);
@@ -433,8 +508,10 @@ function sendInvite(toEmail, toName) {
 
 function inviteCard(invite, type) {
   const title = type === "received" ? `${invite.fromName} invited you to dance.` : `Invite sent to ${invite.toName}.`;
-  const meta = type === "received" ? `From ${invite.fromEmail} · ${invite.createdAt}` : `To ${invite.toEmail} · ${invite.createdAt}`;
-  const alreadyInvitedBack = type === "received" && getInvites().some((candidate) => candidate.fromEmail === currentUser.email && candidate.toEmail === invite.fromEmail);
+  const meta = type === "received" ? `From ${invite.fromEmail} · ${invite.eventName || "Trial event"} · ${invite.createdAt}` : `To ${invite.toEmail} · ${invite.eventName || "Trial event"} · ${invite.createdAt}`;
+  const checkin = currentCheckin();
+  const canInviteBack = type === "received" && checkin && invite.eventId === checkin.eventId && canInteractWith(invite.fromEmail);
+  const alreadyInvitedBack = canInviteBack && getInvites().some((candidate) => candidate.fromEmail === currentUser.email && candidate.toEmail === invite.fromEmail && candidate.eventId === invite.eventId);
 
   return `
     <article class="tester-card">
@@ -446,7 +523,7 @@ function inviteCard(invite, type) {
         <span class="tag">${type === "received" ? "Received" : "Sent"}</span>
         <span class="tag">Dance invite</span>
       </div>
-      ${type === "received" ? `<button class="primary-button invite-back-button" type="button" data-invite-email="${invite.fromEmail}" data-invite-name="${invite.fromName}">${alreadyInvitedBack ? "Invited back" : "Invite back"}</button>` : ""}
+      ${type === "received" ? `<button class="primary-button invite-back-button" type="button" data-invite-email="${invite.fromEmail}" data-invite-name="${invite.fromName}" ${canInviteBack ? "" : "disabled"}>${alreadyInvitedBack ? "Invited back" : "Invite back"}</button>` : ""}
     </article>
   `;
 }
@@ -456,15 +533,19 @@ function mutualMatches() {
 
   const invites = getInvites();
   const currentEmail = currentUser.email;
+  const checkin = currentCheckin();
+  if (!checkin) return [];
+
   const matchedEmails = new Set();
 
   invites.forEach((invite) => {
+    if (invite.eventId !== checkin.eventId) return;
     const otherEmail = invite.fromEmail === currentEmail ? invite.toEmail : invite.toEmail === currentEmail ? invite.fromEmail : "";
     if (!otherEmail) return;
 
-    const reverseInvite = invites.some((candidate) => candidate.fromEmail === otherEmail && candidate.toEmail === currentEmail);
-    const forwardInvite = invites.some((candidate) => candidate.fromEmail === currentEmail && candidate.toEmail === otherEmail);
-    if (reverseInvite && forwardInvite) matchedEmails.add(otherEmail);
+    const reverseInvite = invites.some((candidate) => candidate.fromEmail === otherEmail && candidate.toEmail === currentEmail && candidate.eventId === checkin.eventId);
+    const forwardInvite = invites.some((candidate) => candidate.fromEmail === currentEmail && candidate.toEmail === otherEmail && candidate.eventId === checkin.eventId);
+    if (reverseInvite && forwardInvite && canInteractWith(otherEmail)) matchedEmails.add(otherEmail);
   });
 
   return [...matchedEmails].map((email) => personByEmail(email));
@@ -478,9 +559,24 @@ function renderInvites() {
     return;
   }
 
+  const checkin = currentCheckin();
+  if (!checkin) {
+    invitesPanel.innerHTML = `
+      <article class="tester-card">
+        <h3>Check in to view event invites.</h3>
+        <p class="meta">Dance invites, matches, and DMs are locked outside active event time.</p>
+        <button class="primary-button" type="button" id="goInvitesCheckinButton">Go to check in</button>
+      </article>
+    `;
+    dmPanel.classList.add("is-hidden");
+    document.querySelector("#goInvitesCheckinButton").addEventListener("click", () => setPage("checkin"));
+    updateNotificationBadge();
+    return;
+  }
+
   const invites = getInvites();
-  const received = invites.filter((invite) => invite.toEmail === currentUser.email);
-  const sent = invites.filter((invite) => invite.fromEmail === currentUser.email);
+  const received = invites.filter((invite) => invite.toEmail === currentUser.email && invite.eventId === checkin.eventId);
+  const sent = invites.filter((invite) => invite.fromEmail === currentUser.email && invite.eventId === checkin.eventId);
   const matches = mutualMatches();
   const unread = unreadDmMessages();
 
@@ -505,7 +601,7 @@ function renderInvites() {
             <span class="avatar ${match.color || "clay"}">${initials(match.name)}</span>
             <div>
               <h3>You matched with ${match.name}.</h3>
-              <p class="meta">Both of you invited each other to dance.</p>
+              <p class="meta">Both of you invited each other at ${checkin ? checkin.event.name : "this event"}.</p>
             </div>
           </div>
           <button class="primary-button dm-open-button" type="button" data-dm-email="${match.email}">Open DM</button>
@@ -544,11 +640,13 @@ function renderInvites() {
 
 function renderDm() {
   if (!currentUser || !activeDmEmail) return;
+  const checkin = currentCheckin();
+  const canSendDm = checkin && canInteractWith(activeDmEmail);
 
   markDmRead(activeDmEmail);
   const otherPerson = personByEmail(activeDmEmail);
   const key = pairKey(currentUser.email, activeDmEmail);
-  const thread = getMessages().filter((message) => message.pair === key);
+  const thread = getMessages().filter((message) => message.pair === key && (!message.eventId || (checkin && message.eventId === checkin.eventId)));
   updateNotificationBadge();
 
   dmPanel.classList.remove("is-hidden");
@@ -569,9 +667,10 @@ function renderDm() {
         </div>
       `).join("") || `<p class="meta">No messages yet. Say hi and plan the dance.</p>`}
     </div>
+    ${canSendDm ? "" : `<div class="notice"><strong>DM paused</strong><p>You both need to be checked into the same active event to send messages.</p></div>`}
     <form class="dm-form" id="dmForm">
       <input id="dmInput" type="text" maxlength="160" placeholder="Type a message">
-      <button class="primary-button" type="submit">Send</button>
+      <button class="primary-button" type="submit" ${canSendDm ? "" : "disabled"}>Send</button>
     </form>
   `;
 
@@ -584,11 +683,13 @@ function renderDm() {
     event.preventDefault();
     const input = document.querySelector("#dmInput");
     const text = input.value.trim();
-    if (!text) return;
+    if (!text || !canSendDm) return;
 
     const messages = getMessages();
     messages.push({
       pair: key,
+      eventId: checkin.eventId,
+      eventName: checkin.event.name,
       fromEmail: currentUser.email,
       fromName: currentUser.name,
       toEmail: activeDmEmail,
@@ -617,6 +718,31 @@ function setPage(page) {
   document.querySelectorAll(".app-page").forEach((section) => {
     section.classList.toggle("is-hidden", section.dataset.page !== page);
   });
+}
+
+function renderCheckin(message = "") {
+  if (!eventSelect || !checkinStatus) return;
+
+  eventSelect.innerHTML = trialEvents.map((event) => `
+    <option value="${event.id}">${event.name} · Location ${event.location} · ${event.active ? event.time : "Closed"}</option>
+  `).join("");
+
+  const checkin = currentCheckin();
+  if (checkin) {
+    eventSelect.value = checkin.eventId;
+    checkinStatus.innerHTML = `
+      <strong>Checked in to ${checkin.event.name}</strong>
+      <p>Dance deck, invites, and DMs are open for dancers checked into this same active event.</p>
+    `;
+    checkinStatus.classList.add("is-ok");
+    return;
+  }
+
+  checkinStatus.innerHTML = `
+    <strong>Not checked in</strong>
+    <p>${message || "Choose an active event and complete the safety checks before using the Dance deck."}</p>
+  `;
+  checkinStatus.classList.remove("is-ok");
 }
 
 function setupDemoMode() {
@@ -701,6 +827,7 @@ function switchToUser(email) {
   resetDeckPosition();
   syncProfileFromUser(user);
   updateSummary();
+  renderCheckin();
   renderMatches();
   renderTesterList();
   renderInvites();
@@ -797,14 +924,77 @@ createPairButton.addEventListener("click", () => {
   setPage("testers");
 });
 
+checkinForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!currentUser) return;
+
+  const selectedEvent = eventById(eventSelect.value);
+  const age = Number(userAge.value);
+
+  if (!selectedEvent || !selectedEvent.active) {
+    renderCheckin("That event is not currently open for check-in.");
+    return;
+  }
+
+  if (eventCode.value.trim().toUpperCase() !== selectedEvent.code) {
+    renderCheckin("The event code does not match. Ask event staff for the current code.");
+    return;
+  }
+
+  if (age < 13 || age > 18) {
+    renderCheckin("This teen beta only allows ages 13-18.");
+    return;
+  }
+
+  if (!guardianConsent.checked || !conductAgree.checked) {
+    renderCheckin("Complete every safety check before checking in.");
+    return;
+  }
+
+  const checkins = getCheckins().filter((checkin) => checkin.email !== currentUser.email);
+  checkins.push({
+    email: currentUser.email,
+    name: currentUser.name,
+    eventId: selectedEvent.id,
+    checkedInAt: new Date().toLocaleString(),
+    safety: {
+      guardian: true,
+      conduct: true
+    }
+  });
+  saveCheckins(checkins);
+  eventCode.value = "";
+  passedEmails.clear();
+  resetDeckPosition();
+  renderCheckin();
+  renderMatches();
+  renderInvites();
+  setPage("matches");
+});
+
+checkoutButton.addEventListener("click", () => {
+  if (!currentUser) return;
+
+  saveCheckins(getCheckins().filter((checkin) => checkin.email !== currentUser.email));
+  activeDmEmail = "";
+  passedEmails.clear();
+  resetDeckPosition();
+  renderCheckin();
+  renderMatches();
+  renderInvites();
+  setPage("checkin");
+});
+
 resetUsersButton.addEventListener("click", () => {
   saveUsers([]);
   saveInvites([]);
   saveMessages([]);
+  saveCheckins([]);
   clearCurrentSession();
   activeDmEmail = "";
   photoPreview.src = defaultPhoto;
   summaryPhoto.src = defaultPhoto;
+  renderCheckin();
   renderMatches();
   renderTesterList();
   renderInvites();
@@ -822,6 +1012,7 @@ resetUsersButton.addEventListener("click", () => {
   control.addEventListener("input", () => {
     persistCurrentProfile();
     updateSummary();
+    renderCheckin();
     resetDeckPosition();
     renderMatches();
     renderInvites();
@@ -853,7 +1044,7 @@ document.querySelector("#removePhoto").addEventListener("click", () => {
 });
 
 window.addEventListener("storage", (event) => {
-  if ([usersKey, invitesKey, messagesKey].includes(event.key)) {
+  if ([usersKey, invitesKey, messagesKey, checkinsKey].includes(event.key)) {
     syncSharedState(true);
   }
 });
@@ -861,6 +1052,7 @@ window.addEventListener("storage", (event) => {
 setInterval(() => syncSharedState(), 1200);
 
 setupDemoMode();
+renderCheckin();
 renderMatches();
 updateSummary();
 renderTesterList();
@@ -874,6 +1066,7 @@ if (savedUser) {
   saveCurrentUser(savedUser);
   syncProfileFromUser(savedUser);
   updateSummary();
+  renderCheckin();
   renderMatches();
   renderInvites();
   showApp();

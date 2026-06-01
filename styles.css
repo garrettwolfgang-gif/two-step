@@ -353,6 +353,12 @@ button {
   gap: 14px;
 }
 
+.checkin-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
 label {
   display: grid;
   gap: 7px;
@@ -578,6 +584,37 @@ button:focus-visible {
 .notification-card {
   border-color: rgba(169, 71, 37, 0.5);
   background: rgba(169, 71, 37, 0.11);
+}
+
+.strong-notice {
+  margin-top: 18px;
+  border-color: rgba(169, 71, 37, 0.55);
+  background: rgba(169, 71, 37, 0.1);
+}
+
+.strong-notice.is-ok {
+  border-color: rgba(96, 120, 90, 0.55);
+  background: rgba(96, 120, 90, 0.12);
+}
+
+.safety-control-list {
+  margin-top: 4px;
+}
+
+.safety-control-list label {
+  display: flex;
+  grid-template-columns: none;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.safety-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
 }
 
 .invite-stack,
@@ -809,6 +846,7 @@ button:focus-visible {
   .toolbar,
   .field-row,
   .results-grid,
+  .safety-grid,
   .tester-actions,
   .swipe-actions,
   .swipe-details,
