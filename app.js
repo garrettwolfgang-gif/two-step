@@ -39,7 +39,6 @@ const dmPanel = document.querySelector("#dmPanel");
 const inviteBadge = document.querySelector("#inviteBadge");
 const checkinForm = document.querySelector("#checkinForm");
 const eventSelect = document.querySelector("#eventSelect");
-const eventCode = document.querySelector("#eventCode");
 const guardianConsent = document.querySelector("#guardianConsent");
 const conductAgree = document.querySelector("#conductAgree");
 const checkoutButton = document.querySelector("#checkoutButton");
@@ -60,10 +59,10 @@ let activeDmEmail = "";
 let lastSyncSignature = "";
 
 const trialEvents = [
-  { id: "anytime-trial", name: "Anytime Trial Check-In", location: "A", code: "OPEN", active: true, time: "Open any time for beta testing" },
-  { id: "location-a-friday", name: "Location A Friday Dance", location: "A", code: "A123", active: true, time: "Tonight 7:00-10:00 PM" },
-  { id: "location-b-saturday", name: "Location B Saturday Dance", location: "B", code: "B123", active: true, time: "Saturday 6:30-9:30 PM" },
-  { id: "location-c-closed", name: "Location C Practice", location: "C", code: "C123", active: false, time: "Closed for trial" }
+  { id: "anytime-trial", name: "Anytime Trial Check-In", location: "A", active: true, time: "Open any time for beta testing" },
+  { id: "location-a-friday", name: "Location A Friday Dance", location: "A", active: true, time: "Tonight 7:00-10:00 PM" },
+  { id: "location-b-saturday", name: "Location B Saturday Dance", location: "B", active: true, time: "Saturday 6:30-9:30 PM" },
+  { id: "location-c-closed", name: "Location C Practice", location: "C", active: false, time: "Closed for trial" }
 ];
 
 const demoUsers = [
@@ -937,11 +936,6 @@ checkinForm.addEventListener("submit", (event) => {
     return;
   }
 
-  if (eventCode.value.trim().toUpperCase() !== selectedEvent.code) {
-    renderCheckin("The event code does not match. Ask event staff for the current code.");
-    return;
-  }
-
   if (age < 13 || age > 18) {
     renderCheckin("This teen beta only allows ages 13-18.");
     return;
@@ -964,7 +958,6 @@ checkinForm.addEventListener("submit", (event) => {
     }
   });
   saveCheckins(checkins);
-  eventCode.value = "";
   passedEmails.clear();
   resetDeckPosition();
   renderCheckin();
