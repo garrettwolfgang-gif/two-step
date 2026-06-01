@@ -31,6 +31,7 @@ const signinPassword = document.querySelector("#signinPassword");
 const sessionBadge = document.querySelector("#sessionBadge");
 const signOutButton = document.querySelector("#signOutButton");
 const createPairButton = document.querySelector("#createPairButton");
+const checkinAllButton = document.querySelector("#checkinAllButton");
 const seedUsersButton = document.querySelector("#seedUsersButton");
 const resetUsersButton = document.querySelector("#resetUsersButton");
 const testerList = document.querySelector("#testerList");
@@ -215,6 +216,20 @@ function canInteractWith(email) {
   const mine = currentCheckin();
   const theirs = activeCheckinFor(email);
   return Boolean(mine && theirs && mine.eventId === theirs.eventId);
+}
+
+function buildCheckin(user, eventId = "anytime-trial") {
+  return {
+    email: user.email,
+    name: user.name,
+    eventId,
+    checkedInAt: new Date().toLocaleString(),
+    safety: {
+      guardian: true,
+      conduct: true,
+      schoolEligibility: true
+    }
+  };
 }
 
 function syncSignature() {
@@ -925,6 +940,17 @@ createPairButton.addEventListener("click", () => {
   setPage("testers");
 });
 
+checkinAllButton.addEventListener("click", () => {
+  const allUsers = getUsers();
+  saveCheckins(allUsers.map((user) => buildCheckin(user)));
+  passedEmails.clear();
+  resetDeckPosition();
+  renderCheckin();
+  renderMatches();
+  renderTesterList();
+  renderInvites();
+});
+
 checkinForm.addEventListener("submit", (event) => {
   event.preventDefault();
   if (!currentUser) return;
@@ -948,17 +974,7 @@ checkinForm.addEventListener("submit", (event) => {
   }
 
   const checkins = getCheckins().filter((checkin) => checkin.email !== currentUser.email);
-  checkins.push({
-    email: currentUser.email,
-    name: currentUser.name,
-    eventId: selectedEvent.id,
-    checkedInAt: new Date().toLocaleString(),
-    safety: {
-      guardian: true,
-      conduct: true,
-      schoolEligibility: true
-    }
-  });
+  checkins.push(buildCheckin(currentUser, selectedEvent.id));
   saveCheckins(checkins);
   passedEmails.clear();
   resetDeckPosition();
