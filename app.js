@@ -51,14 +51,22 @@ const sessionKey = "twoStepCurrentUser";
 const invitesKey = "twoStepDanceInvites";
 const messagesKey = "twoStepMessages";
 const checkinsKey = "twoStepEventCheckins";
+const reportsKey = "twoStepReports";
+const blocksKey = "twoStepBlocks";
 const urlParams = new URLSearchParams(window.location.search);
 const demoMode = urlParams.get("demo") === "1";
 const demoUserEmail = demoMode ? urlParams.get("user") : "";
+const supabaseConfig = window.TWO_STEP_SUPABASE || {};
+const supabaseClient = window.supabase && supabaseConfig.url && supabaseConfig.anonKey
+  ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey)
+  : null;
 let currentUser = null;
 let deckIndex = 0;
 const passedEmails = new Set();
 let activeDmEmail = "";
 let lastSyncSignature = "";
+let remoteSyncStarted = false;
+let remoteWritePaused = false;
 
 const trialEvents = [
   { id: "anytime-trial", name: "Anytime Trial Check-In", location: "A", active: true, time: "Open any time for beta testing" },
@@ -158,6 +166,7 @@ function getUsers() {
 
 function saveUsers(users) {
   localStorage.setItem(usersKey, JSON.stringify(users));
+  pushProfilesToSupabase(users);
 }
 
 function saveCurrentUser(user) {
@@ -178,6 +187,7 @@ function getInvites() {
 
 function saveInvites(invites) {
   localStorage.setItem(invitesKey, JSON.stringify(invites));
+  pushInvitesToSupabase(invites);
 }
 
 function getMessages() {
@@ -185,7 +195,12 @@ function getMessages() {
 }
 
 function saveMessages(messages) {
-  localStorage.setItem(messagesKey, JSON.stringify(messages));
+  const normalized = messages.map((message) => ({
+    ...message,
+    id: message.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  }));
+  localStorage.setItem(messagesKey, JSON.stringify(normalized));
+  pushMessagesToSupabase(normalized);
 }
 
 function getCheckins() {
@@ -194,6 +209,288 @@ function getCheckins() {
 
 function saveCheckins(checkins) {
   localStorage.setItem(checkinsKey, JSON.stringify(checkins));
+  pushCheckinsToSupabase(checkins);
+}
+
+function getReports() {
+  return JSON.parse(localStorage.getItem(reportsKey) || "[]");
+}
+
+function saveReports(reports) {
+  localStorage.setItem(reportsKey, JSON.stringify(reports));
+  pushReportsToSupabase(reports);
+}
+
+function getBlocks() {
+  return JSON.parse(localStorage.getItem(blocksKey) || "[]");
+}
+
+function saveBlocks(blocks) {
+  localStorage.setItem(blocksKey, JSON.stringify(blocks));
+  pushBlocksToSupabase(blocks);
+}
+
+function isBlocked(email) {
+  if (!currentUser) return false;
+
+  return getBlocks().some((block) =>
+    (block.blockerEmail === currentUser.email && block.blockedEmail === email) ||
+    (block.blockerEmail === email && block.blockedEmail === currentUser.email)
+  );
+}
+
+function profileToRow(user) {
+  return {
+    email: user.email,
+    name: user.name || "New dancer",
+    password: user.password || "",
+    location: user.location || "A",
+    min_age: user.minAge || 13,
+    max_age: user.maxAge || 18,
+    gender_preference: user.genderPreference || "any",
+    age: user.age || 13,
+    gender: user.gender || "female",
+    photo: user.photo || "",
+    updated_at: new Date().toISOString()
+  };
+}
+
+function profileFromRow(row) {
+  return {
+    name: row.name,
+    email: row.email,
+    password: row.password || "",
+    location: row.location || "A",
+    minAge: row.min_age || 13,
+    maxAge: row.max_age || 18,
+    genderPreference: row.gender_preference || "any",
+    age: row.age || 13,
+    gender: row.gender || "female",
+    photo: row.photo || ""
+  };
+}
+
+function checkinToRow(checkin) {
+  return {
+    email: checkin.email,
+    name: checkin.name,
+    event_id: checkin.eventId,
+    checked_in_at: checkin.checkedInAt,
+    safety: checkin.safety || {},
+    updated_at: new Date().toISOString()
+  };
+}
+
+function checkinFromRow(row) {
+  return {
+    email: row.email,
+    name: row.name,
+    eventId: row.event_id,
+    checkedInAt: row.checked_in_at,
+    safety: row.safety || {}
+  };
+}
+
+function inviteToRow(invite) {
+  return {
+    id: invite.id,
+    from_email: invite.fromEmail,
+    from_name: invite.fromName,
+    to_email: invite.toEmail,
+    to_name: invite.toName,
+    event_id: invite.eventId || "",
+    event_name: invite.eventName || "",
+    created_at_text: invite.createdAt || ""
+  };
+}
+
+function inviteFromRow(row) {
+  return {
+    id: row.id,
+    fromEmail: row.from_email,
+    fromName: row.from_name,
+    toEmail: row.to_email,
+    toName: row.to_name,
+    eventId: row.event_id || "",
+    eventName: row.event_name || "",
+    createdAt: row.created_at_text || ""
+  };
+}
+
+function messageToRow(message) {
+  return {
+    id: message.id,
+    pair: message.pair,
+    event_id: message.eventId || "",
+    event_name: message.eventName || "",
+    from_email: message.fromEmail,
+    from_name: message.fromName,
+    to_email: message.toEmail,
+    text: message.text,
+    created_at_text: message.createdAt || "",
+    read: Boolean(message.read)
+  };
+}
+
+function messageFromRow(row) {
+  return {
+    id: row.id,
+    pair: row.pair,
+    eventId: row.event_id || "",
+    eventName: row.event_name || "",
+    fromEmail: row.from_email,
+    fromName: row.from_name,
+    toEmail: row.to_email,
+    text: row.text,
+    createdAt: row.created_at_text || "",
+    read: Boolean(row.read)
+  };
+}
+
+function reportToRow(report) {
+  return {
+    id: report.id,
+    reporter_email: report.reporterEmail,
+    reported_email: report.reportedEmail,
+    reason: report.reason,
+    notes: report.notes || ""
+  };
+}
+
+function reportFromRow(row) {
+  return {
+    id: row.id,
+    reporterEmail: row.reporter_email,
+    reportedEmail: row.reported_email,
+    reason: row.reason,
+    notes: row.notes || ""
+  };
+}
+
+function blockToRow(block) {
+  return {
+    blocker_email: block.blockerEmail,
+    blocked_email: block.blockedEmail
+  };
+}
+
+function blockFromRow(row) {
+  return {
+    blockerEmail: row.blocker_email,
+    blockedEmail: row.blocked_email
+  };
+}
+
+async function pushProfilesToSupabase(users) {
+  if (!supabaseClient || remoteWritePaused || !users.length) return;
+  await supabaseClient.from("two_step_profiles").upsert(users.map(profileToRow), { onConflict: "email" });
+}
+
+async function pushCheckinsToSupabase(checkins) {
+  if (!supabaseClient || remoteWritePaused || !checkins.length) return;
+  await supabaseClient.from("two_step_checkins").upsert(checkins.map(checkinToRow), { onConflict: "email" });
+}
+
+async function pushInvitesToSupabase(invites) {
+  if (!supabaseClient || remoteWritePaused || !invites.length) return;
+  await supabaseClient.from("two_step_invites").upsert(invites.map(inviteToRow), { onConflict: "id" });
+}
+
+async function pushMessagesToSupabase(messages) {
+  if (!supabaseClient || remoteWritePaused || !messages.length) return;
+  await supabaseClient.from("two_step_messages").upsert(messages.map(messageToRow), { onConflict: "id" });
+}
+
+async function pushReportsToSupabase(reports) {
+  if (!supabaseClient || remoteWritePaused || !reports.length) return;
+  await supabaseClient.from("two_step_reports").upsert(reports.map(reportToRow), { onConflict: "id" });
+}
+
+async function pushBlocksToSupabase(blocks) {
+  if (!supabaseClient || remoteWritePaused || !blocks.length) return;
+  await supabaseClient.from("two_step_blocks").upsert(blocks.map(blockToRow), { onConflict: "blocker_email,blocked_email" });
+}
+
+async function pullSupabaseState() {
+  if (!supabaseClient) return false;
+
+  const [profiles, checkins, invites, messages, reports, blocks] = await Promise.all([
+    supabaseClient.from("two_step_profiles").select("*"),
+    supabaseClient.from("two_step_checkins").select("*"),
+    supabaseClient.from("two_step_invites").select("*"),
+    supabaseClient.from("two_step_messages").select("*").order("created_at", { ascending: true }),
+    supabaseClient.from("two_step_reports").select("*"),
+    supabaseClient.from("two_step_blocks").select("*")
+  ]);
+
+  if (profiles.error || checkins.error || invites.error || messages.error || reports.error || blocks.error) return false;
+
+  remoteWritePaused = true;
+  if (profiles.data.length) localStorage.setItem(usersKey, JSON.stringify(profiles.data.map(profileFromRow)));
+  if (checkins.data.length) localStorage.setItem(checkinsKey, JSON.stringify(checkins.data.map(checkinFromRow)));
+  if (invites.data.length) localStorage.setItem(invitesKey, JSON.stringify(invites.data.map(inviteFromRow)));
+  if (messages.data.length) localStorage.setItem(messagesKey, JSON.stringify(messages.data.map(messageFromRow)));
+  if (reports.data.length) localStorage.setItem(reportsKey, JSON.stringify(reports.data.map(reportFromRow)));
+  if (blocks.data.length) localStorage.setItem(blocksKey, JSON.stringify(blocks.data.map(blockFromRow)));
+  remoteWritePaused = false;
+
+  return true;
+}
+
+async function startSupabaseSync() {
+  if (!supabaseClient || remoteSyncStarted) return;
+  remoteSyncStarted = true;
+
+  const pulled = await pullSupabaseState();
+  if (pulled) {
+    await Promise.all([
+      pushProfilesToSupabase(getUsers()),
+      pushCheckinsToSupabase(getCheckins()),
+      pushInvitesToSupabase(getInvites()),
+      pushMessagesToSupabase(getMessages()),
+      pushReportsToSupabase(getReports()),
+      pushBlocksToSupabase(getBlocks())
+    ]);
+    refreshSharedState();
+    lastSyncSignature = syncSignature();
+  }
+
+  supabaseClient.channel("two-step-beta-sync")
+    .on("postgres_changes", { event: "*", schema: "public", table: "two_step_profiles" }, () => syncSupabaseAndRefresh())
+    .on("postgres_changes", { event: "*", schema: "public", table: "two_step_checkins" }, () => syncSupabaseAndRefresh())
+    .on("postgres_changes", { event: "*", schema: "public", table: "two_step_invites" }, () => syncSupabaseAndRefresh())
+    .on("postgres_changes", { event: "*", schema: "public", table: "two_step_messages" }, () => syncSupabaseAndRefresh())
+    .on("postgres_changes", { event: "*", schema: "public", table: "two_step_reports" }, () => syncSupabaseAndRefresh())
+    .on("postgres_changes", { event: "*", schema: "public", table: "two_step_blocks" }, () => syncSupabaseAndRefresh())
+    .subscribe();
+
+  setInterval(syncSupabaseAndRefresh, 4000);
+}
+
+async function syncSupabaseAndRefresh() {
+  const pulled = await pullSupabaseState();
+  if (!pulled) return;
+
+  refreshSharedState();
+  lastSyncSignature = syncSignature();
+}
+
+async function deleteSupabaseCheckin(email) {
+  if (!supabaseClient || remoteWritePaused) return;
+  await supabaseClient.from("two_step_checkins").delete().eq("email", email);
+}
+
+async function clearSupabaseBetaData() {
+  if (!supabaseClient || remoteWritePaused) return;
+
+  await Promise.all([
+    supabaseClient.from("two_step_messages").delete().neq("id", ""),
+    supabaseClient.from("two_step_invites").delete().neq("id", ""),
+    supabaseClient.from("two_step_checkins").delete().neq("email", ""),
+    supabaseClient.from("two_step_profiles").delete().neq("email", ""),
+    supabaseClient.from("two_step_reports").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
+    supabaseClient.from("two_step_blocks").delete().neq("blocker_email", "")
+  ]);
 }
 
 function eventById(eventId) {
@@ -215,7 +512,7 @@ function currentCheckin() {
 function canInteractWith(email) {
   const mine = currentCheckin();
   const theirs = activeCheckinFor(email);
-  return Boolean(mine && theirs && mine.eventId === theirs.eventId);
+  return Boolean(mine && theirs && mine.eventId === theirs.eventId && !isBlocked(email));
 }
 
 function buildCheckin(user, eventId = "anytime-trial") {
@@ -237,7 +534,9 @@ function syncSignature() {
     localStorage.getItem(invitesKey) || "[]",
     localStorage.getItem(messagesKey) || "[]",
     localStorage.getItem(usersKey) || "[]",
-    localStorage.getItem(checkinsKey) || "[]"
+    localStorage.getItem(checkinsKey) || "[]",
+    localStorage.getItem(reportsKey) || "[]",
+    localStorage.getItem(blocksKey) || "[]"
   ].join("|");
 }
 
@@ -672,7 +971,11 @@ function renderDm() {
         <p class="eyebrow">DM</p>
         <h3>${otherPerson.name}</h3>
       </div>
-      <button class="ghost-button bordered-button" type="button" id="closeDmButton">Close</button>
+      <div class="dm-tools">
+        <button class="ghost-button bordered-button" type="button" id="reportDmButton">Report</button>
+        <button class="ghost-button bordered-button" type="button" id="blockDmButton">Block</button>
+        <button class="ghost-button bordered-button" type="button" id="closeDmButton">Close</button>
+      </div>
     </div>
     <div class="message-list">
       ${thread.map((message) => `
@@ -694,6 +997,9 @@ function renderDm() {
     activeDmEmail = "";
     dmPanel.classList.add("is-hidden");
   });
+
+  document.querySelector("#reportDmButton").addEventListener("click", () => reportUser(activeDmEmail));
+  document.querySelector("#blockDmButton").addEventListener("click", () => blockUser(activeDmEmail));
 
   document.querySelector("#dmForm").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -721,6 +1027,40 @@ function renderDm() {
 
 function openDm(email) {
   activeDmEmail = email;
+  renderInvites();
+}
+
+function reportUser(email) {
+  if (!currentUser || !email) return;
+
+  const otherPerson = personByEmail(email);
+  const reason = window.prompt(`Report ${otherPerson.name}? Add a short reason.`);
+  if (!reason) return;
+
+  const reports = getReports();
+  reports.push({
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    reporterEmail: currentUser.email,
+    reportedEmail: email,
+    reason,
+    notes: `Reported from DM at ${new Date().toLocaleString()}`
+  });
+  saveReports(reports);
+}
+
+function blockUser(email) {
+  if (!currentUser || !email) return;
+
+  const blocks = getBlocks();
+  const alreadyBlocked = blocks.some((block) => block.blockerEmail === currentUser.email && block.blockedEmail === email);
+  if (!alreadyBlocked) {
+    blocks.push({ blockerEmail: currentUser.email, blockedEmail: email });
+    saveBlocks(blocks);
+  }
+
+  activeDmEmail = "";
+  passedEmails.add(email);
+  renderMatches();
   renderInvites();
 }
 
@@ -988,6 +1328,7 @@ checkoutButton.addEventListener("click", () => {
   if (!currentUser) return;
 
   saveCheckins(getCheckins().filter((checkin) => checkin.email !== currentUser.email));
+  deleteSupabaseCheckin(currentUser.email);
   activeDmEmail = "";
   passedEmails.clear();
   resetDeckPosition();
@@ -1002,6 +1343,9 @@ resetUsersButton.addEventListener("click", () => {
   saveInvites([]);
   saveMessages([]);
   saveCheckins([]);
+  saveReports([]);
+  saveBlocks([]);
+  clearSupabaseBetaData();
   clearCurrentSession();
   activeDmEmail = "";
   photoPreview.src = defaultPhoto;
@@ -1056,7 +1400,7 @@ document.querySelector("#removePhoto").addEventListener("click", () => {
 });
 
 window.addEventListener("storage", (event) => {
-  if ([usersKey, invitesKey, messagesKey, checkinsKey].includes(event.key)) {
+  if ([usersKey, invitesKey, messagesKey, checkinsKey, reportsKey, blocksKey].includes(event.key)) {
     syncSharedState(true);
   }
 });
@@ -1085,3 +1429,5 @@ if (savedUser) {
 } else {
   showLoggedOut();
 }
+
+startSupabaseSync();

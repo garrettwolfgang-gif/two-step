@@ -644,6 +644,13 @@ button:focus-visible {
   gap: 12px;
 }
 
+.dm-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .dm-heading h3 {
   margin: 0;
 }
@@ -860,6 +867,14 @@ button:focus-visible {
 
   .dm-heading {
     display: grid;
+  }
+
+  .dm-tools {
+    justify-content: stretch;
+  }
+
+  .dm-tools .ghost-button {
+    flex: 1;
   }
 
   .topbar {
