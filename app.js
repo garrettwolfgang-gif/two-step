@@ -49,6 +49,7 @@ let currentUser = null;
 let deckIndex = 0;
 const passedEmails = new Set();
 let activeDmEmail = "";
+let lastSyncSignature = "";
 
 const demoUsers = [
   {
@@ -169,6 +170,36 @@ function getMessages() {
 
 function saveMessages(messages) {
   localStorage.setItem(messagesKey, JSON.stringify(messages));
+}
+
+function syncSignature() {
+  return [
+    localStorage.getItem(invitesKey) || "[]",
+    localStorage.getItem(messagesKey) || "[]",
+    localStorage.getItem(usersKey) || "[]"
+  ].join("|");
+}
+
+function refreshSharedState() {
+  if (!currentUser) return;
+
+  const updatedCurrentUser = getUsers().find((user) => user.email === currentUser.email);
+  if (updatedCurrentUser) {
+    currentUser = updatedCurrentUser;
+    sessionBadge.textContent = currentUser.name;
+  }
+
+  renderMatches();
+  renderTesterList();
+  renderInvites();
+}
+
+function syncSharedState(force = false) {
+  const nextSignature = syncSignature();
+  if (!force && nextSignature === lastSyncSignature) return;
+
+  lastSyncSignature = nextSignature;
+  refreshSharedState();
 }
 
 function unreadDmMessages() {
@@ -821,11 +852,20 @@ document.querySelector("#removePhoto").addEventListener("click", () => {
   renderInvites();
 });
 
+window.addEventListener("storage", (event) => {
+  if ([usersKey, invitesKey, messagesKey].includes(event.key)) {
+    syncSharedState(true);
+  }
+});
+
+setInterval(() => syncSharedState(), 1200);
+
 setupDemoMode();
 renderMatches();
 updateSummary();
 renderTesterList();
 renderInvites();
+lastSyncSignature = syncSignature();
 
 localStorage.removeItem(sessionKey);
 const savedSessionEmail = sessionStorage.getItem(sessionKey);
