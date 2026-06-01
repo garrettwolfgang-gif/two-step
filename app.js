@@ -42,7 +42,9 @@ const usersKey = "twoStepTrialUsers";
 const sessionKey = "twoStepCurrentUser";
 const invitesKey = "twoStepDanceInvites";
 const messagesKey = "twoStepMessages";
-const demoMode = new URLSearchParams(window.location.search).get("demo") === "1";
+const urlParams = new URLSearchParams(window.location.search);
+const demoMode = urlParams.get("demo") === "1";
+const demoUserEmail = demoMode ? urlParams.get("user") : "";
 let currentUser = null;
 let deckIndex = 0;
 const passedEmails = new Set();
@@ -143,7 +145,14 @@ function saveUsers(users) {
 
 function saveCurrentUser(user) {
   currentUser = user;
-  localStorage.setItem(sessionKey, user.email);
+  sessionStorage.setItem(sessionKey, user.email);
+  localStorage.removeItem(sessionKey);
+}
+
+function clearCurrentSession() {
+  currentUser = null;
+  sessionStorage.removeItem(sessionKey);
+  localStorage.removeItem(sessionKey);
 }
 
 function getInvites() {
@@ -353,7 +362,10 @@ function renderTesterList() {
           <p class="meta">${user.email} · Age ${user.age || user.minAge || 15} · Location ${user.location || "A"}</p>
         </div>
       </div>
-      <button class="primary-button" type="button" data-switch-user="${user.email}">${currentUser && currentUser.email === user.email ? "Current user" : "Switch to user"}</button>
+      <div class="tester-actions inline-actions">
+        <button class="primary-button" type="button" data-switch-user="${user.email}">${currentUser && currentUser.email === user.email ? "Current user" : "Switch to user"}</button>
+        <a class="ghost-button bordered-button" href="?demo=1&user=${encodeURIComponent(user.email)}" target="_blank" rel="noopener">Open in new tab</a>
+      </div>
     </article>
   `).join("") || `<article class="tester-card"><h3>No trial users yet.</h3><p class="meta">Add demo users or create an account first.</p></article>`;
 
@@ -734,8 +746,7 @@ signinForm.addEventListener("submit", (event) => {
 });
 
 signOutButton.addEventListener("click", () => {
-  currentUser = null;
-  localStorage.removeItem(sessionKey);
+  clearCurrentSession();
   showLoggedOut();
 });
 
@@ -759,9 +770,8 @@ resetUsersButton.addEventListener("click", () => {
   saveUsers([]);
   saveInvites([]);
   saveMessages([]);
-  currentUser = null;
+  clearCurrentSession();
   activeDmEmail = "";
-  localStorage.removeItem(sessionKey);
   photoPreview.src = defaultPhoto;
   summaryPhoto.src = defaultPhoto;
   renderMatches();
@@ -817,8 +827,9 @@ updateSummary();
 renderTesterList();
 renderInvites();
 
-const savedSessionEmail = localStorage.getItem(sessionKey);
-const savedUser = getUsers().find((user) => user.email === savedSessionEmail);
+localStorage.removeItem(sessionKey);
+const savedSessionEmail = sessionStorage.getItem(sessionKey);
+const savedUser = getUsers().find((user) => user.email === demoUserEmail) || getUsers().find((user) => user.email === savedSessionEmail);
 if (savedUser) {
   saveCurrentUser(savedUser);
   syncProfileFromUser(savedUser);
