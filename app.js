@@ -60,6 +60,7 @@ let activeDmEmail = "";
 let lastSyncSignature = "";
 
 const trialEvents = [
+  { id: "anytime-trial", name: "Anytime Trial Check-In", location: "A", code: "OPEN", active: true, time: "Open any time for beta testing" },
   { id: "location-a-friday", name: "Location A Friday Dance", location: "A", code: "A123", active: true, time: "Tonight 7:00-10:00 PM" },
   { id: "location-b-saturday", name: "Location B Saturday Dance", location: "B", code: "B123", active: true, time: "Saturday 6:30-9:30 PM" },
   { id: "location-c-closed", name: "Location C Practice", location: "C", code: "C123", active: false, time: "Closed for trial" }
