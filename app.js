@@ -41,6 +41,7 @@ const checkinForm = document.querySelector("#checkinForm");
 const eventSelect = document.querySelector("#eventSelect");
 const guardianConsent = document.querySelector("#guardianConsent");
 const conductAgree = document.querySelector("#conductAgree");
+const schoolEligibility = document.querySelector("#schoolEligibility");
 const checkoutButton = document.querySelector("#checkoutButton");
 const checkinStatus = document.querySelector("#checkinStatus");
 
@@ -941,7 +942,7 @@ checkinForm.addEventListener("submit", (event) => {
     return;
   }
 
-  if (!guardianConsent.checked || !conductAgree.checked) {
+  if (!guardianConsent.checked || !conductAgree.checked || !schoolEligibility.checked) {
     renderCheckin("Complete every safety check before checking in.");
     return;
   }
@@ -954,7 +955,8 @@ checkinForm.addEventListener("submit", (event) => {
     checkedInAt: new Date().toLocaleString(),
     safety: {
       guardian: true,
-      conduct: true
+      conduct: true,
+      schoolEligibility: true
     }
   });
   saveCheckins(checkins);
