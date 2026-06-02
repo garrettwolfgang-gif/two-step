@@ -60,10 +60,21 @@ const supabaseConfig = window.TWO_STEP_SUPABASE || {};
 const supabaseClient = window.supabase && supabaseConfig.url && supabaseConfig.anonKey
   ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey)
   : null;
+const reportReasons = [
+  "Harassment or bullying",
+  "Unsafe behavior",
+  "Pressure to meet or dance",
+  "Inappropriate messages",
+  "Fake profile",
+  "Underage or school ID concern",
+  "Spam or scam",
+  "Other"
+];
 let currentUser = null;
 let deckIndex = 0;
 const passedEmails = new Set();
 let activeDmEmail = "";
+let reportPanelOpen = false;
 let lastSyncSignature = "";
 let remoteSyncStarted = false;
 let remoteWritePaused = false;
@@ -991,6 +1002,29 @@ function renderDm() {
       <input id="dmInput" type="text" maxlength="160" placeholder="Type a message">
       <button class="primary-button" type="submit" ${canSendDm ? "" : "disabled"}>Send</button>
     </form>
+    ${reportPanelOpen ? `
+      <form class="report-form" id="reportForm">
+        <div>
+          <p class="eyebrow">Report ${otherPerson.name}</p>
+          <h3>What happened?</h3>
+        </div>
+        <label>
+          Reason
+          <select id="reportReason" required>
+            <option value="" selected disabled>Choose a reason</option>
+            ${reportReasons.map((reason) => `<option value="${reason}">${reason}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          Details
+          <textarea id="reportDetails" maxlength="500" rows="4" placeholder="Write what happened. Include where, when, and anything that would help review it."></textarea>
+        </label>
+        <div class="report-actions">
+          <button class="ghost-button bordered-button" type="button" id="cancelReportButton">Cancel</button>
+          <button class="primary-button" type="submit">Submit report</button>
+        </div>
+      </form>
+    ` : ""}
   `;
 
   document.querySelector("#closeDmButton").addEventListener("click", () => {
@@ -1000,6 +1034,14 @@ function renderDm() {
 
   document.querySelector("#reportDmButton").addEventListener("click", () => reportUser(activeDmEmail));
   document.querySelector("#blockDmButton").addEventListener("click", () => blockUser(activeDmEmail));
+  document.querySelector("#reportForm")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitReport(activeDmEmail);
+  });
+  document.querySelector("#cancelReportButton")?.addEventListener("click", () => {
+    reportPanelOpen = false;
+    renderDm();
+  });
 
   document.querySelector("#dmForm").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -1027,14 +1069,22 @@ function renderDm() {
 
 function openDm(email) {
   activeDmEmail = email;
+  reportPanelOpen = false;
   renderInvites();
 }
 
 function reportUser(email) {
   if (!currentUser || !email) return;
 
-  const otherPerson = personByEmail(email);
-  const reason = window.prompt(`Report ${otherPerson.name}? Add a short reason.`);
+  reportPanelOpen = true;
+  renderDm();
+}
+
+function submitReport(email) {
+  if (!currentUser || !email) return;
+
+  const reason = document.querySelector("#reportReason")?.value;
+  const details = document.querySelector("#reportDetails")?.value.trim() || "";
   if (!reason) return;
 
   const reports = getReports();
@@ -1043,9 +1093,11 @@ function reportUser(email) {
     reporterEmail: currentUser.email,
     reportedEmail: email,
     reason,
-    notes: `Reported from DM at ${new Date().toLocaleString()}`
+    notes: `${details || "No extra details provided."} Reported from DM at ${new Date().toLocaleString()}`
   });
   saveReports(reports);
+  reportPanelOpen = false;
+  renderDm();
 }
 
 function blockUser(email) {
