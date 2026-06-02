@@ -1422,6 +1422,8 @@ signinForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const email = signinEmail.value.trim().toLowerCase();
   const password = signinPassword.value;
+  if (email === adminAccount.email) ensureAdminAccount();
+
   const user = getUsers().find((candidate) => candidate.email === email && candidate.password === password);
 
   if (!user) {
@@ -1429,7 +1431,8 @@ signinForm.addEventListener("submit", (event) => {
     return;
   }
 
-  saveCurrentUser(user);
+  const signedInUser = email === adminAccount.email ? { ...user, role: "admin", password: adminAccount.password } : user;
+  saveCurrentUser(signedInUser);
   syncProfileFromUser(user);
   updateSummary();
   renderMatches();
@@ -1437,6 +1440,7 @@ signinForm.addEventListener("submit", (event) => {
   renderInvites();
   renderAdminReports();
   showApp();
+  if (isAdmin()) setPage("reports");
 });
 
 signOutButton.addEventListener("click", () => {
@@ -1603,13 +1607,14 @@ localStorage.removeItem(sessionKey);
 const savedSessionEmail = sessionStorage.getItem(sessionKey);
 const savedUser = getUsers().find((user) => user.email === demoUserEmail) || getUsers().find((user) => user.email === savedSessionEmail);
 if (savedUser) {
-  saveCurrentUser(savedUser);
+  saveCurrentUser(savedUser.email === adminAccount.email ? { ...savedUser, role: "admin", password: adminAccount.password } : savedUser);
   syncProfileFromUser(savedUser);
   updateSummary();
   renderCheckin();
   renderMatches();
   renderInvites();
   showApp();
+  if (isAdmin()) setPage("reports");
 } else {
   showLoggedOut();
 }
