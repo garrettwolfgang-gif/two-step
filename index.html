@@ -82,6 +82,7 @@
         <button class="page-button" type="button" data-page-target="checkin">Check In</button>
         <button class="page-button" type="button" data-page-target="matches">Dance</button>
         <button class="page-button" type="button" data-page-target="invites">Invites <span class="nav-badge is-hidden" id="inviteBadge">0</span></button>
+        <button class="page-button" type="button" data-page-target="reports" data-admin-only hidden>Reports</button>
         <button class="page-button" type="button" data-page-target="testers" data-demo-only hidden>Test</button>
         <button class="page-button" type="button" data-page-target="safety" data-demo-only hidden>Safety</button>
       </nav>
@@ -269,6 +270,20 @@
 
           <section class="invite-stack" id="invitesPanel" aria-label="Dance invite notifications"></section>
           <section class="dm-panel is-hidden" id="dmPanel" aria-label="Direct messages"></section>
+        </section>
+
+        <section class="safety-panel app-page is-hidden" data-page="reports" aria-label="Admin reports" data-admin-only hidden>
+          <div class="panel-heading">
+            <p class="eyebrow">Admin</p>
+            <h1>Review safety reports.</h1>
+          </div>
+
+          <div class="notice strong-notice">
+            <strong>Beta admin view</strong>
+            <p>Reports submitted from DMs appear here with the reason, details, reporter, and reported account.</p>
+          </div>
+
+          <section class="report-list" id="adminReportsPanel" aria-label="Submitted reports"></section>
         </section>
 
         <section class="safety-panel app-page is-hidden" data-page="testers" aria-label="Test users" data-demo-only hidden>

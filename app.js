@@ -38,6 +38,7 @@ const testerList = document.querySelector("#testerList");
 const invitesPanel = document.querySelector("#invitesPanel");
 const dmPanel = document.querySelector("#dmPanel");
 const inviteBadge = document.querySelector("#inviteBadge");
+const adminReportsPanel = document.querySelector("#adminReportsPanel");
 const checkinForm = document.querySelector("#checkinForm");
 const eventSelect = document.querySelector("#eventSelect");
 const guardianConsent = document.querySelector("#guardianConsent");
@@ -70,6 +71,19 @@ const reportReasons = [
   "Spam or scam",
   "Other"
 ];
+const adminAccount = {
+  name: "Admin",
+  email: "admin@twostep.local",
+  password: "admin123",
+  location: "A",
+  minAge: 13,
+  maxAge: 18,
+  genderPreference: "any",
+  age: 18,
+  gender: "nonbinary",
+  photo: "",
+  role: "admin"
+};
 let currentUser = null;
 let deckIndex = 0;
 const passedEmails = new Set();
@@ -171,6 +185,19 @@ function initials(name) {
     .toUpperCase();
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function isAdmin(user = currentUser) {
+  return Boolean(user && (user.role === "admin" || user.email === adminAccount.email));
+}
+
 function getUsers() {
   return JSON.parse(localStorage.getItem(usersKey) || "[]");
 }
@@ -178,6 +205,20 @@ function getUsers() {
 function saveUsers(users) {
   localStorage.setItem(usersKey, JSON.stringify(users));
   pushProfilesToSupabase(users);
+}
+
+function ensureAdminAccount() {
+  const users = getUsers();
+  const existingIndex = users.findIndex((user) => user.email === adminAccount.email);
+  const nextAdmin = { ...adminAccount, ...(existingIndex >= 0 ? users[existingIndex] : {}), role: "admin", password: adminAccount.password };
+
+  if (existingIndex >= 0) {
+    users[existingIndex] = nextAdmin;
+  } else {
+    users.push(nextAdmin);
+  }
+
+  saveUsers(users);
 }
 
 function saveCurrentUser(user) {
@@ -246,7 +287,8 @@ function isBlocked(email) {
 
   return getBlocks().some((block) =>
     (block.blockerEmail === currentUser.email && block.blockedEmail === email) ||
-    (block.blockerEmail === email && block.blockedEmail === currentUser.email)
+    (block.blockerEmail === email && block.blockedEmail === currentUser.email) ||
+    (block.blockerEmail === adminAccount.email && (block.blockedEmail === email || block.blockedEmail === currentUser.email))
   );
 }
 
@@ -444,6 +486,7 @@ async function pullSupabaseState() {
   if (reports.data.length) localStorage.setItem(reportsKey, JSON.stringify(reports.data.map(reportFromRow)));
   if (blocks.data.length) localStorage.setItem(blocksKey, JSON.stringify(blocks.data.map(blockFromRow)));
   remoteWritePaused = false;
+  ensureAdminAccount();
 
   return true;
 }
@@ -564,6 +607,7 @@ function refreshSharedState() {
   renderTesterList();
   renderInvites();
   renderCheckin();
+  renderAdminReports();
 }
 
 function syncSharedState(force = false) {
@@ -671,6 +715,7 @@ function allMatches() {
 
   const signedUpUsers = getUsers()
     .filter((user) => !currentUser || user.email !== currentUser.email)
+    .filter((user) => !isAdmin(user))
     .filter((user) => canInteractWith(user.email))
     .map((user) => ({
       name: user.name,
@@ -1100,6 +1145,77 @@ function submitReport(email) {
   renderDm();
 }
 
+function renderAdminReports() {
+  if (!adminReportsPanel) return;
+
+  updateAdminVisibility();
+
+  if (!isAdmin()) {
+    adminReportsPanel.innerHTML = "";
+    return;
+  }
+
+  const users = getUsers();
+  const reports = getReports().slice().reverse();
+  if (!reports.length) {
+    adminReportsPanel.innerHTML = `
+      <article class="tester-card">
+        <h3>No reports yet</h3>
+        <p class="meta">When someone submits a DM report, it will show up here.</p>
+      </article>
+    `;
+    return;
+  }
+
+  adminReportsPanel.innerHTML = reports.map((report) => {
+    const reporter = users.find((user) => user.email === report.reporterEmail);
+    const reported = users.find((user) => user.email === report.reportedEmail);
+    const blocked = getBlocks().some((block) => block.blockerEmail === adminAccount.email && block.blockedEmail === report.reportedEmail);
+
+    return `
+      <article class="tester-card admin-report-card">
+        <div>
+          <p class="eyebrow">${escapeHtml(report.reason)}</p>
+          <h3>${escapeHtml(reported?.name || report.reportedEmail)}</h3>
+        </div>
+        <dl class="report-meta-grid">
+          <div>
+            <dt>Reported account</dt>
+            <dd>${escapeHtml(report.reportedEmail)}</dd>
+          </div>
+          <div>
+            <dt>Reporter</dt>
+            <dd>${escapeHtml(reporter?.name || report.reporterEmail)} · ${escapeHtml(report.reporterEmail)}</dd>
+          </div>
+          <div>
+            <dt>Details</dt>
+            <dd>${escapeHtml(report.notes || "No details provided.")}</dd>
+          </div>
+        </dl>
+        <div class="report-actions">
+          <button class="ghost-button bordered-button" type="button" data-admin-block="${escapeHtml(report.reportedEmail)}" ${blocked ? "disabled" : ""}>${blocked ? "Blocked" : "Block account"}</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  adminReportsPanel.querySelectorAll("[data-admin-block]").forEach((button) => {
+    button.addEventListener("click", () => adminBlockUser(button.dataset.adminBlock));
+  });
+}
+
+function adminBlockUser(email) {
+  if (!isAdmin() || !email) return;
+
+  const blocks = getBlocks();
+  const alreadyBlocked = blocks.some((block) => block.blockerEmail === adminAccount.email && block.blockedEmail === email);
+  if (!alreadyBlocked) {
+    blocks.push({ blockerEmail: adminAccount.email, blockedEmail: email });
+    saveBlocks(blocks);
+  }
+  renderAdminReports();
+}
+
 function blockUser(email) {
   if (!currentUser || !email) return;
 
@@ -1118,6 +1234,7 @@ function blockUser(email) {
 
 function setPage(page) {
   if (!demoMode && (page === "testers" || page === "safety")) page = "profile";
+  if (page === "reports" && !isAdmin()) page = "profile";
 
   document.querySelectorAll(".page-button").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.pageTarget === page);
@@ -1125,6 +1242,12 @@ function setPage(page) {
 
   document.querySelectorAll(".app-page").forEach((section) => {
     section.classList.toggle("is-hidden", section.dataset.page !== page);
+  });
+}
+
+function updateAdminVisibility() {
+  document.querySelectorAll("[data-admin-only]").forEach((element) => {
+    element.hidden = !isAdmin();
   });
 }
 
@@ -1178,13 +1301,16 @@ function showApp() {
   authShell.classList.add("is-hidden");
   appShell.classList.remove("is-hidden");
   sessionBadge.textContent = currentUser ? currentUser.name : "Teen beta";
+  updateAdminVisibility();
   renderTesterList();
   renderInvites();
+  renderAdminReports();
 }
 
 function showLoggedOut() {
   appShell.classList.add("is-hidden");
   authShell.classList.remove("is-hidden");
+  updateAdminVisibility();
   updateNotificationBadge();
   showAuth("signup");
 }
@@ -1288,6 +1414,7 @@ signupForm.addEventListener("submit", (event) => {
   renderMatches();
   renderTesterList();
   renderInvites();
+  renderAdminReports();
   showApp();
 });
 
@@ -1308,6 +1435,7 @@ signinForm.addEventListener("submit", (event) => {
   renderMatches();
   renderTesterList();
   renderInvites();
+  renderAdminReports();
   showApp();
 });
 
@@ -1390,14 +1518,15 @@ checkoutButton.addEventListener("click", () => {
   setPage("checkin");
 });
 
-resetUsersButton.addEventListener("click", () => {
+resetUsersButton.addEventListener("click", async () => {
   saveUsers([]);
   saveInvites([]);
   saveMessages([]);
   saveCheckins([]);
   saveReports([]);
   saveBlocks([]);
-  clearSupabaseBetaData();
+  await clearSupabaseBetaData();
+  ensureAdminAccount();
   clearCurrentSession();
   activeDmEmail = "";
   photoPreview.src = defaultPhoto;
@@ -1406,6 +1535,7 @@ resetUsersButton.addEventListener("click", () => {
   renderMatches();
   renderTesterList();
   renderInvites();
+  renderAdminReports();
   showLoggedOut();
 });
 
@@ -1459,12 +1589,14 @@ window.addEventListener("storage", (event) => {
 
 setInterval(() => syncSharedState(), 1200);
 
+ensureAdminAccount();
 setupDemoMode();
 renderCheckin();
 renderMatches();
 updateSummary();
 renderTesterList();
 renderInvites();
+renderAdminReports();
 lastSyncSignature = syncSignature();
 
 localStorage.removeItem(sessionKey);

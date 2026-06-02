@@ -722,6 +722,35 @@ textarea {
   gap: 10px;
 }
 
+.report-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.admin-report-card h3 {
+  margin: 0;
+}
+
+.report-meta-grid {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.report-meta-grid dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.report-meta-grid dd {
+  margin: 4px 0 0;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .result-top {
   display: flex;
   gap: 12px;
